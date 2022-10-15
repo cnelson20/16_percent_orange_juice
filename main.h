@@ -1,3 +1,6 @@
+#ifndef _MAIN_H
+#define _MAIN_H 
+
 #include "structs.h"
 
 void main();
@@ -21,29 +24,53 @@ void draw_player_sprite(struct player *p, char sprite_table_index);
 #define SIZE_DROP 0x10
 
 #define INDEX_DICE_1 214
-#define INDEX_DICE_2 222
-#define INDEX_DICE_3 230
-#define INDEX_DICE_4 238
-#define INDEX_DICE_5 246
-#define INDEX_DICE_6 252
+#define INDEX_DICE_2 218
+#define INDEX_DICE_3 222
+#define INDEX_DICE_4 226
+#define INDEX_DICE_5 230
+#define INDEX_DICE_6 234
 #define SIZE_DICE 0x50
 
-#define INDEX_ARROW 2
+#define INDEX_ARROW 238
+#define SIZE_ARROW 0x50
+
+#define INDEX_STAR 242
+#define SIZE_STAR 0x90
+
+#define INDEX_SIGN 250
+#define SIZE_SIGN 0xF0
+
+#define INDEX_CIRCLE 58
+#define SIZE_CIRCLE 0xF0
+
+#define INDEX_ATTACK (256 + 122)
+#define SIZE_ATTACK 0x20
+
+#define INDEX_DEFEND (256 + 126)
+#define SIZE_DEFEND 0x20
 
 
+extern short display_text_custom_offset;
+void display_text_sprite(short, char size, short x, char y);
 
-void display_text_sprite(short, char size);
+void display_die_sprite(short offset, char roll, char x, char y);
 
-void display_die_sprite(char offset, char roll);
-
-void display_bubble_sprite();
+void display_bubble_sprite(short x, char y);
 void display_number_sprite(char num);
 void clear_number_sprite();
-void clear_sprite(short offset);
+void clear_sprites(short offset, char num);
+
+void draw_next_arrows(struct board_tile *tile); 
+
+void draw_norma_signs();
 
 void move_player();
 
 void draw_gui();
+
+void attack(struct player *attacker, struct player *defender, char attacker_on_left);
+void fight(struct player *attacker, struct player *defender);
+
 
 void wait_jiffies(char num);
 
@@ -62,3 +89,5 @@ void load_enemy_vram(char enemy_index);
 void setup_video();
 
 char get_act_x(char tile_x, char tile_y);
+
+#endif

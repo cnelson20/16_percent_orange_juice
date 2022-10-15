@@ -142,7 +142,7 @@ void main() {
 	POKE(0x9F21, 0xFA);
 	POKE(0x9F22, 0x11);
 	
-	for (i = 0; i < (32 * 3); ++i) {
+	for (i = 0; i < (32 * 7); ++i) {
 		POKE(0x9F23, base_palettes[0][i]);	
 	}
 	
@@ -156,6 +156,7 @@ void main() {
 	game.whose_turn = 0;
 	for (i = 0; i < 4; ++i) {
 		players[i].standing = norma_tiles[i];
+		players[i].home_tile = norma_tiles[i];
 		players[i].player_num = i;
 		players[i].stars = 2;
 	}
@@ -166,20 +167,20 @@ void main() {
 		move_player();
 		switch (players[game.whose_turn].standing->type) {
 			case TYPE_BONUS:
-				display_text_sprite(INDEX_BONUS, SIZE_BONUS);
+				display_text_sprite(INDEX_BONUS, SIZE_BONUS, 160, 96);
 				while (keyboard_get() != 0x20);
 				i = roll_die();
-				display_die_sprite(0x78, i);
+				display_die_sprite(0x170, i, 200, 128 - 32 - 8);
 				i *= (players[game.whose_turn].norma_level > 3) ? 3 : players[game.whose_turn].norma_level;
 				players[game.whose_turn].stars += i;
 				wait_jiffies(60);
-				clear_sprite(0x78);
+				clear_sprites(0x170, 1);
 				break;
 			case TYPE_DROP:
-				display_text_sprite(INDEX_DROP, SIZE_DROP);
+				display_text_sprite(INDEX_DROP, SIZE_DROP, 160, 96);
 				while (keyboard_get() != 0x20);
 				i = roll_die();
-				display_die_sprite(0x78, i);
+				display_die_sprite(0x170, i, 200, 128 - 32 - 8);
 				i *= players[game.whose_turn].norma_level;
 				if (i >= players[game.whose_turn].stars) {
 					players[game.whose_turn].stars = 0;
@@ -187,10 +188,10 @@ void main() {
 					players[game.whose_turn].stars -= i;
 				}				
 				wait_jiffies(60);
-				clear_sprite(0x78);
+				clear_sprites(0x170, 1);
 				break;
 			case TYPE_WARP:
-				clear_number_sprite();
+				clear_sprites(0xF0, 2);
 				wait_jiffies(20);
 				for (i = (rand_byte() & 0x1) + 1; i != 0; --i) {
 					do {
@@ -218,13 +219,13 @@ void main() {
 					new_enemy(0);
 					enemy_is_alive = 1;
 				}
-				//fight(&players[game.whose_turn], &enemy);
+				fight(&players[game.whose_turn], &enemy);
 				break;
 			case TYPE_DRAW:
 				break;
 		}
 		draw_gui();
-		clear_number_sprite();
+		clear_sprites(0xF0, 2);
 		game.whose_turn = (game.whose_turn + 1) % 4;
 		if (game.whose_turn == 0) {
 			for (i = 0; i < 4; i++) {
@@ -239,7 +240,7 @@ void move_player() {
 	char i;
 	
 	draw_players();
-	display_text_sprite(INDEX_CLICK, SIZE_CLICK);
+	display_text_sprite(INDEX_CLICK, SIZE_CLICK, 160, 96);
 	
 	i = 0;
 	while (keyboard_get() != 0x20) {
@@ -258,8 +259,8 @@ void move_player() {
 	steps = roll_die();
 	while (steps) {
 		display_number_sprite(steps);
-		wait_jiffies(10);
 		if (players[game.whose_turn].standing->next[1] != NULL) {
+			draw_next_arrows(players[game.whose_turn].standing);
 			while (1) {
 				key = keyboard_get();
 				if (key == 0x31) {
@@ -270,7 +271,9 @@ void move_player() {
 					break;
 				}
 			}
+			clear_sprites(0x130, 4);
 		} else {
+			wait_jiffies(10);
 			players[game.whose_turn].standing = players[game.whose_turn].standing->next[0];
 		}
 		draw_players();
@@ -280,7 +283,7 @@ void move_player() {
 				if (i == game.whose_turn) { continue; }
 				if (players[i].standing == players[game.whose_turn].standing) {
 					waitforjiffy();
-					display_text_sprite(INDEX_STOP, SIZE_STOP);
+					display_text_sprite(INDEX_STOP, SIZE_STOP, 160, 96);
 					while (1) {
 						key = keyboard_get();
 						if (key == 0x31) {
@@ -292,9 +295,9 @@ void move_player() {
 					break;
 				}
 			}
-			if (players[game.whose_turn].standing == norma_tiles[game.whose_turn]) {
+			if (players[game.whose_turn].standing == players[game.whose_turn].home_tile) {
 				waitforjiffy();
-				display_text_sprite(INDEX_STOP, SIZE_STOP);
+				display_text_sprite(INDEX_STOP, SIZE_STOP, 160, 96);
 				while (1) {
 					key = keyboard_get();
 					if (key == 0x31) {
@@ -327,6 +330,7 @@ void draw_players() {
 	char i;
 	
 	center_around_player(&(players[game.whose_turn]));
+	draw_norma_signs();
 	draw_player_sprite(&players[game.whose_turn], 0);
 	for (i = 0; i < 4; ++i) {
 			if (i == game.whose_turn) {
@@ -339,19 +343,19 @@ void draw_players() {
 	}
 }
 
-void display_bubble_sprite() {
+void display_bubble_sprite(short x, char y) {
 	POKE(0x9F23, 128 + 10);
 	POKE(0x9F23, 0x4);
-	POKE(0x9F23, 160 - 32);
-	POKE(0x9F23, 0);
-	POKE(0x9F23, 128 - 64);
+	POKE(0x9F23, x);
+	POKE(0x9F23, x >> 8);
+	POKE(0x9F23, y);
 	POKE(0x9F23, 0);
 	POKE(0x9F23, 0xC);
 	POKE(0x9F23, 0xF1);
 }
 
 void display_number_sprite(char num) {
-	POKEW(0x9F20, 0xFC80);
+	POKEW(0x9F20, 0xFCF0);
 	POKE(0x9F22, 0x11);
 	
 	POKE(0x9F23, 128 + num);
@@ -363,59 +367,107 @@ void display_number_sprite(char num) {
 	POKE(0x9F23, 0xC);
 	POKE(0x9F23, 0x01);
 	
-	display_bubble_sprite();
+	display_bubble_sprite(160 - 32, 128 - 64);
 }
 
 char half_sprite_lengths[] = {4, 8, 16, 32};
 
-void display_die_sprite(char offset, char roll) {
+void display_die_sprite(short offset, char roll, char x, char y) {
 	POKEW(0x9F20, 0xFC00 + offset);
 	POKE(0x9F22, 0x11);
 	
 	POKE(0x9F23, INDEX_DICE_1 + (roll - 1) * 4);
 	POKE(0x9F23, 0x4);
-	POKE(0x9F23, 200);
+	POKE(0x9F23, x);
 	POKE(0x9F23, 0);
-	POKE(0x9F23, 128 - 32 - 8);
+	POKE(0x9F23, y);
 	POKE(0x9F23, 0);
 	POKE(0x9F23, 0xC);
 	POKE(0x9F23, SIZE_DICE | 1);
 }
 
-void clear_sprite(short offset) {
-	POKEW(0x9F20, 0xFC06 + offset);
-	POKE(0x9F22, 0x11);
+void draw_next_arrows(struct board_tile *tile) {
+	static char hflip, vflip;
+	static short x, y;
+	static char i;
 	
-	__asm__ ("stz $9F23");
+	POKEW(0x9F20, 0xFD30);
+	POKE(0x9F22, 0x11);
+	for (i = 0; i < 2; ++i) {		
+		hflip = get_act_x(tile->next[i]->x, tile->next[i]->y) > get_act_x(tile->x, tile->y) ? 1 : 0;
+		vflip = (tile->next[i]->x + tile->next[i]->y) > (tile->x + tile->y) ? 0 : 2;
+		
+		x = 128;
+		y = 168;
+		
+		if (hflip) { x += 64; }
+		if (!vflip) { y += 32; }
+		
+		x = x - 4;
+		y = y - 4;
+		POKE(0x9F23, 129 + i);
+		POKE(0x9F23, 0x4);
+		POKE(0x9F23, x);
+		POKE(0x9F23, x >> 8);
+		POKE(0x9F23, y);
+		POKE(0x9F23, y >> 8);
+		POKE(0x9F23, 0xC);
+		POKE(0x9F23, 0x01);
+		
+		x = x - 4;
+		y = y - 4;
+		POKE(0x9F23, INDEX_ARROW);
+		POKE(0x9F23, 0x4);
+		POKE(0x9F23, x);
+		POKE(0x9F23, x >> 8);
+		POKE(0x9F23, y);
+		POKE(0x9F23, y >> 8);
+		POKE(0x9F23, 0xC | hflip | vflip);
+		POKE(0x9F23, SIZE_ARROW | 2);
+	}
 }
 
-void display_text_sprite(short index, char size) {
-	POKEW(0x9F20, 0xFC80);
+void clear_sprites(short offset, char num) {
+	POKEW(0x9F20, 0xFC06 + offset);
+	POKE(0x9F22, 0x41);
+	
+	while (num > 0) {
+		__asm__ ("stz $9F23");
+		--num;
+	}
+}
+
+short display_text_custom_offset;
+
+void display_text_sprite(short index, char size, short x, char y) {
+	short temp;
+	
+	if (x & 0xF000) { 
+		POKEW(0x9F20, 0xFC00 + display_text_custom_offset);
+	} else {
+		POKEW(0x9F20, 0xFCF0);
+	}
 	POKE(0x9F22, 0x11);
+	
+	x = x & 0x0FFF;
+	temp = x - half_sprite_lengths[(size >> 4) & 0x3];
 	
 	POKE(0x9F23, index);
 	POKE(0x9F23, 0x4 + (index >> 8));
-	POKE(0x9F23, 160 - half_sprite_lengths[(size >> 4) & 0x3]);
-	POKE(0x9F23, 0);
-	POKE(0x9F23, 128 - 32 - half_sprite_lengths[size >> 6]);
+	POKE(0x9F23, temp);
+	POKE(0x9F23, temp >> 8);
+	POKE(0x9F23, y - half_sprite_lengths[size >> 6]);
 	POKE(0x9F23, 0);
 	POKE(0x9F23, 0xC);
 	POKE(0x9F23, size | 1);
 	
-	display_bubble_sprite();
+	display_bubble_sprite(x - 32, y - 32);
 }
 
-void clear_number_sprite() {
-	POKEW(0x9F20, 0xFC80 + 6);
-	POKE(0x9F22, 0x41);
-	__asm__ ("stz $9F23");
-	__asm__ ("stz $9F23");
-	__asm__ ("stz $9F23");
-}
 
 void draw_player_sprite(struct player *p, char sprite_table_index) {
-	static short val, val2;
-	static struct board_tile *p_standing;
+	short val, val2;
+	struct board_tile *p_standing;
 	
 	p_standing = p->standing;
 	
@@ -466,6 +518,42 @@ void draw_player_sprite(struct player *p, char sprite_table_index) {
 	POKE(0x9F23, 0xFB + p->player_num);
 }
 
+void draw_norma_signs() {
+	char i;
+	short player_x = get_act_x(players[game.whose_turn].standing->x, players[game.whose_turn].standing->y);
+	short player_y = players[game.whose_turn].standing->x + players[game.whose_turn].standing->y;
+	
+	POKEW(0x9F20, 0xFD50);
+	POKE(0x9F22, 0x11);
+	for (i = 0; i < 4; ++i) {
+		short display_x = get_act_x(players[i].home_tile->x, players[i].home_tile->y);
+		short display_y = (players[i].home_tile->x + players[i].home_tile->y);
+		
+		if (player_x >= display_x) {
+			display_x = 128 - (player_x - display_x) * 64;
+		} else {
+			display_x = 128 + (display_x - player_x) * 64;
+		}
+		if (player_y >= display_y) {
+			display_y = 128 - (player_y - display_y) * 32;
+		} else {
+			display_y = 128 + (display_y - player_y) * 32;
+		}
+		
+		POKEW(0x02 + 4 * i, display_x);
+		POKEW(0x04 + 4 * i, display_y);
+		
+		POKE(0x9F23, INDEX_SIGN);
+		POKE(0x9F23, 0x4);
+		POKE(0x9F23, display_x);
+		POKE(0x9F23, display_x >> 8);
+		POKE(0x9F23, display_y);
+		POKE(0x9F23, display_y >> 8);
+		POKE(0x9F23, 0xC);
+		POKE(0x9F23, SIZE_SIGN | (i + 3));
+	}
+}
+
 short gui_x_offsets[] = {0, 256, 0, 256};
 char gui_y_offsets[] = {0, 0, 176, 176};
 
@@ -473,8 +561,8 @@ short gui_base_x;
 short gui_base_y;
 
 void set_base_gui_x_y(char i) {
-	gui_base_x = i % 2 ? 284 : 16;
-	gui_base_y = i >= 2 ? 200 : 16;
+	gui_base_x = i % 2 ? 280 : 8;
+	gui_base_y = i >= 2 ? 200 : 8;
 }
 
 void draw_gui() {
@@ -491,6 +579,15 @@ void draw_gui() {
 		
 		set_base_gui_x_y(i);
 		
+		POKE(0x9F23, INDEX_STAR);
+		POKE(0x9F23, 0x4);
+		POKE(0x9F23, gui_base_x);
+		POKE(0x9F23, gui_base_x >> 8);
+		POKE(0x9F23, gui_base_y);
+		POKE(0x9F23, gui_base_y >> 8);
+		POKE(0x9F23, 0xC);
+		POKE(0x9F23, SIZE_STAR | 3);
+		gui_base_x += 12;
 		if (stars_hundred > 0) {
 			POKE(0x9F23, 128 + stars_hundred);
 			POKE(0x9F23, 0x4);
@@ -499,10 +596,10 @@ void draw_gui() {
 			POKE(0x9F23, gui_base_y);
 			POKE(0x9F23, gui_base_y >> 8);
 			POKE(0x9F23, 0xC);
-			POKE(0x9F23, 0x01);
+			POKE(0x9F23, 0x03);
 			gui_base_x += 8;
 		}
-		if (stars_ten > 0) {
+		if (stars_hundred > 0 || stars_ten > 0) {
 			POKE(0x9F23, 128 + stars_ten);
 			POKE(0x9F23, 0x4);
 			POKE(0x9F23, gui_base_x);
@@ -510,7 +607,7 @@ void draw_gui() {
 			POKE(0x9F23, gui_base_y);
 			POKE(0x9F23, gui_base_y >> 8);
 			POKE(0x9F23, 0xC);
-			POKE(0x9F23, 0x01);
+			POKE(0x9F23, 0x03);
 			gui_base_x += 8;
 		}
 		POKE(0x9F23, 128 + stars_ones);
@@ -520,10 +617,35 @@ void draw_gui() {
 		POKE(0x9F23, gui_base_y);
 		POKE(0x9F23, gui_base_y >> 8);
 		POKE(0x9F23, 0xC);
-		POKE(0x9F23, 0x01);
+		POKE(0x9F23, 0x03);
 		
 		set_base_gui_x_y(i);
 		gui_base_y += 12;
+		gui_base_x += 18;
+		stars_ten = players[i].wins;
+		if (stars_ten >= 10) {
+			POKE(0x9F23, 128 + stars_ten / 10);
+			POKE(0x9F23, 0x4);
+			POKE(0x9F23, gui_base_x);
+			POKE(0x9F23, gui_base_x >> 8);
+			POKE(0x9F23, gui_base_y);
+			POKE(0x9F23, gui_base_y >> 8);
+			POKE(0x9F23, 0xC);
+			POKE(0x9F23, 0x03);
+			gui_base_x += 8;
+		}
+		POKE(0x9F23, 128 + stars_ten % 10);
+		POKE(0x9F23, 0x4);
+		POKE(0x9F23, gui_base_x);
+		POKE(0x9F23, gui_base_x >> 8);
+		POKE(0x9F23, gui_base_y);
+		POKE(0x9F23, gui_base_y >> 8);
+		POKE(0x9F23, 0xC);
+		POKE(0x9F23, 0x03);		
+		
+		set_base_gui_x_y(i);
+		gui_base_y += 23;		
+		gui_base_x += 17;		
 		POKE(0x9F23, 128 + players[i].norma_level);
 		POKE(0x9F23, 0x4);
 		POKE(0x9F23, gui_base_x);
@@ -531,16 +653,16 @@ void draw_gui() {
 		POKE(0x9F23, gui_base_y);
 		POKE(0x9F23, gui_base_y >> 8);
 		POKE(0x9F23, 0xC);
-		POKE(0x9F23, 0x01);
+		POKE(0x9F23, 0x03);
 		
-		POKE(0x9F23, 128 + 10);
-		POKE(0x9F23, 0x4);
+		POKE(0x9F23, INDEX_CIRCLE);
+		POKE(0x9F23, 0x5);
 		POKE(0x9F23, gui_x_offsets[i]);
 		POKE(0x9F23, gui_x_offsets[i] >> 8);
 		POKE(0x9F23, gui_y_offsets[i]);
 		POKE(0x9F23, 0);
-		POKE(0x9F23, 0xC);
-		POKE(0x9F23, 0xF1);
+		POKE(0x9F23, 0xC | (i >= 2 ? 0 : 2) | (i % 2));
+		POKE(0x9F23, 0xF3 + i);
 	}
 }
 
@@ -558,6 +680,115 @@ void zoom_out() {
 	VERA.layer1.hscroll = 0;
 	VERA.layer1.vscroll = 0;
 }
+
+extern void draw_horiz_band();
+
+void fight(struct player *attacker, struct player *defender) {
+	char i;
+	
+	clear_sprites(0xF0, 2);
+	wait_jiffies(30);
+	i = 0;
+	POKEW(0x9F20, 0xFD0E);
+	POKE(0x9F22, 0x41);
+	__asm__ ("stz $9F23");
+	__asm__ ("stz $9F23");
+	__asm__ ("stz $9F23");
+	__asm__ ("stz $9F23");
+	__asm__ ("stz $9F23");
+	
+	POKEW(0x9F20, 0xFD56);
+	__asm__ ("stz $9F23");
+	__asm__ ("stz $9F23");
+	__asm__ ("stz $9F23");
+	__asm__ ("stz $9F23");
+	
+	draw_horiz_band();
+	attack(attacker, defender, 1);
+	attack(defender, attacker, 0);
+	
+	wait_jiffies(120);
+	clear_sprites(0x128, 1);
+	clear_layer1();
+	for (i = 0; i < 0x34; ++i) {
+		plot_tile(&(game_tiles[i]));
+	}
+}
+
+void attack(struct player *attacker, struct player *defender, char attacker_on_left) {
+	short val; 
+	char attack_roll;
+	char defend_evade_roll;
+	
+	/* draw defender */
+	POKE(0x9F22, 0x11);
+	POKEW(0x9F20, 0xFD28);
+	val = (defender->player_num * 6 + 0) * 64;
+	POKE(0x9F23, val);
+	POKE(0x9F23, 8 | (val >> 8));
+	POKE(0x9F23, attacker_on_left ? (320 - 80 - 64) : 80);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 128 - 32);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC | (1 ^ attacker_on_left));
+	POKE(0x9F23, 0xFB + defender->player_num);
+	
+	attacker->player_state = STATE_ROLL;
+	while (1) {
+		/* draw attacker */
+		POKEW(0x9F20, 0xFD00);
+		POKE(0x9F22, 0x11);
+		val = (attacker->player_num * 6 + attacker->player_state) * 64;
+		POKE(0x9F23, val);
+		POKE(0x9F23, 8 | (val >> 8));
+		POKE(0x9F23, attacker_on_left ? 80 : (320 - 80 - 64));
+		POKE(0x9F23, 0);
+		POKE(0x9F23, 128 - 32);
+		POKE(0x9F23, 0);
+		POKE(0x9F23, 0xC | attacker_on_left);
+		POKE(0x9F23, 0xFB + attacker->player_num);
+		wait_jiffies(30);
+		if (keyboard_get() == 0x20) { break; }
+		attacker->player_state = attacker->player_state == STATE_IDLE ? STATE_ROLL : STATE_IDLE;
+	}
+	attacker->player_state = STATE_ATTACK;
+	POKEW(0x9F20, 0xFD00);
+	POKE(0x9F22, 0x11);
+	val = (attacker->player_num * 6 + attacker->player_state) * 64;
+	POKE(0x9F23, val);
+	POKE(0x9F23, 8 | (val >> 8));
+	POKE(0x9F23, attacker_on_left ? 80 : (320 - 80 - 64));
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 128 - 32);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC | attacker_on_left);
+	POKE(0x9F23, 0xFB + attacker->player_num);
+	attack_roll = roll_die();
+	display_die_sprite(0x170, attack_roll, attacker_on_left ? 128 : (320 - 128 - 8), 128 - 32 - 8);
+	attack_roll = attack_roll + attacker->attack + attacker->attack_modifier - 6;
+	if (attack_roll >= 128) { attack_roll = 0; }
+	wait_jiffies(20);
+	POKEW(0x9F20, 0xFD70);
+	POKE(0x9F23, 128 + attack_roll);
+	POKE(0x9F23, 0x4);
+	POKE(0x9F23, attacker_on_left ? 132 : (320 - 132 - 4));
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 128 - 32 + 4);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 0x1);
+	wait_jiffies(20);
+	
+	display_text_custom_offset = 0x130;
+	display_text_sprite(INDEX_ATTACK, SIZE_ATTACK, 0xF000 | (160 - 96), 128 + 32);	
+	display_text_custom_offset = 0x140;
+	display_text_sprite(INDEX_DEFEND, SIZE_DEFEND, 0xF000 | (160 + 96), 128 + 32);
+	
+	wait_jiffies(60);
+	clear_sprites(0x130, 4);
+	clear_sprites(0x170, 1);
+}
+
 
 void parse_map_data(char *data, char num_tiles) {
 	static char i, temp;
@@ -699,7 +930,7 @@ void character_menu() {
 void setup_video() {	
 	VERA.control = 0;
 	//VERA.display.video = 0x31;
-	VERA.display.video = 0x61; // don't want layer 0 right now 
+	VERA.display.video = 0x71; // don't want layer 0 right now 
 	
 	VERA.display.hscale = 128;
 	VERA.display.vscale = 128;
@@ -711,7 +942,9 @@ void setup_video() {
 		
 	VERA.layer1.config = 0xA2;
 	VERA.layer1.mapbase = 0; // map_base @ $00000 in VRAM 
-	VERA.layer1.tilebase = 0x41; // tilemap @ $08000 in VRAM 
+	VERA.layer1.tilebase = 0x45; // tilemap @ $08000 in VRAM 
+	
+	clear_layer1();
 	
 	cbm_k_setnam("tiles.chr");
 	cbm_k_setlfs(0xFF, DEVICE_NUM, 2);
@@ -721,7 +954,7 @@ void setup_video() {
 	POKEW(0x4, 0x9F23);
 	POKEW(0x6, TILES_CHR_FILELEN);
 	
-	POKEW(0x9F20, 0x8000);
+	POKEW(0x9F20, 0x8800);
 	POKE(0x9F22, 0x10);
 	__asm__("jsr $FEE7");
 	
@@ -729,13 +962,18 @@ void setup_video() {
 	cbm_k_setlfs(0xFF, DEVICE_NUM, 2);
 	RAM_BANK = 1;
 	cbm_k_load(0, LOAD_ADDRESS);
-	POKEW(0x6, 0x1000);
 	
 	POKEW(0x9F20, 0x9000);
 	POKE(0x9F22, 0x10);
-	__asm__("jsr $FEE7");
 	
-	clear_layer1();
+	RAM_BANK = 1;
+	POKEW(0x6, 0x2000);
+	__asm__ ("jsr $FEE7");
+	
+	
+	RAM_BANK = 2;
+	POKEW(0x6, 0x0800);
+	__asm__ ("jsr $FEE7");	
 }
 
 char load_filename_string[32];
@@ -816,6 +1054,7 @@ void new_enemy(char is_boss) {
 	load_enemy_vram(index);
 	
 	init_player_properties(&enemy, enemy_properties_table + (index * 4));
+	enemy.player_num = 4;
 }
 
 char enemy_names[][16] = {
@@ -877,5 +1116,10 @@ char base_palettes[][32] = {
 	},
 	{0x00, 0x00, 0xFF, 0x0F, 0xDD, 0x0E, 0xBB, 0x0C, 0xBA, 0x0D, 0xB9, 0x0C, 0xCA, 0x0D, 0x97, 0x0B, 0xED, 0x0F, 0xDB, 0x0E, 0x99, 0x0A, 0xFE, 0x0F, 0xBA, 0x0B, 0x75, 0x08, 0x77, 0x08, 0x00, 0x00},
 	{0x00, 0x00, 0x9B, 0x08, 0xAB, 0x09, 0xBD, 0x09, 0xDE, 0x0C, 0x8A, 0x06, 0xEF, 0x0E, 0xFF, 0x0F, 0xFF, 0x0E, 0xDD, 0x0C, 0xDE, 0x0D, 0xAE, 0x08, 0xEF, 0x0D, 0xCE, 0x0A, 0xDF, 0x0B},
+	
+	{0x00, 0x00, 0xCC, 0x0C, 0xDD, 0x0D, 0xFE, 0x0F, 0xED, 0x0F, 0xCB, 0x0F, 0x99, 0x09, 0xB8, 0x0F, 0xCA, 0x0F, 0xA7, 0x0F, 0xB9, 0x0F, 0x84, 0x0F, 0x96, 0x0F, 0x77, 0x07, 0x54, 0x05, 0xFF, 0x0F}, /* player 1 palette */
+  {0x00, 0x00, 0xCC, 0x0C, 0xDD, 0x0D, 0xFE, 0x0F, 0xFF, 0x0E, 0xEF, 0x0D, 0x99, 0x09, 0xEF, 0x0C, 0xED, 0x0E, 0xCF, 0x0A, 0xDF, 0x0B, 0xBF, 0x07, 0xCF, 0x09, 0x77, 0x07, 0x55, 0x05}, /* player 2 palette */
+  {0x00, 0x00, 0xCC, 0x0C, 0xDD, 0x0D, 0xFE, 0x0F, 0xFE, 0x0E, 0xFD, 0x0D, 0x99, 0x09, 0xFB, 0x0B, 0xFC, 0x0C, 0xF9, 0x09, 0xFA, 0x0A, 0xF6, 0x06, 0xF7, 0x08, 0x77, 0x07, 0x55, 0x05}, /* player 3 palette */
+  {0x00, 0x00, 0xCC, 0x0C, 0xDD, 0x0D, 0xFE, 0x0F, 0xFE, 0x0F, 0xFC, 0x0F, 0x99, 0x09, 0xEA, 0x0F, 0xFD, 0x0F, 0xE9, 0x0F, 0xE8, 0x0F, 0xD4, 0x0F, 0xE7, 0x0F, 0x77, 0x07, 0x55, 0x05}, /* player 4 palette */
 };
 

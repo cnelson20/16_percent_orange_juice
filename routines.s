@@ -434,3 +434,50 @@ _roll_die:
 	bcs :-
 	inc A 
 	rts 
+	
+.export _draw_horiz_band
+_draw_horiz_band:
+	lda $9F38
+	sta tmp1
+	lda $9F37
+	lsr tmp1 
+	ror A
+	lsr tmp1
+	ror A 
+	lsr A 
+	and #%11111110
+	sta tmp1
+	
+	lda $9F3A
+	sta tmp2
+	lda $9F39
+	lsr tmp2
+	ror A 
+	lsr tmp2
+	ror A
+	lsr A 
+	clc
+	adc #10
+	sta $9F21
+	
+	lda #$10
+	sta $9F22
+	
+	ldy #10
+	:
+	lda tmp1 
+	sta $9F20
+	ldx #20
+	:
+	lda #18
+	sta $9F23
+	lda #$30
+	sta $9F23
+	dex 
+	bne :-
+	inc $9F21
+	dey
+	bne :--	
+	
+	rts
+	

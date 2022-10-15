@@ -21,6 +21,7 @@ typedef struct board_tile {
 
 typedef struct player {
 	struct board_tile *standing;
+	struct board_tile *home_tile;
 	
 	char player_state;
 	char player_num;
