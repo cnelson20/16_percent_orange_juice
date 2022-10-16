@@ -26,7 +26,30 @@ extern void clear_layer1();
 extern void clear_layer1_blue();
 
 
-extern char base_palettes[][32];
+char setup_characters[][16] = {
+	"kai", // 0
+	"qp", // 1
+	"suguri", // 2
+	"marc", // 3
+	"yuki", // 4
+	"aru", // 5
+	"hime", // 6
+	"sora", // 7
+	"fernet", // 8
+	"peat", // 9
+	"mariepoppo", // a
+	"tomomo", // b
+	"mio", // c
+	"chicken", // $0d
+	"roboball", // $0e
+	"seagull", // $0f
+};
+#define SETUP_CHARACTERS_LEN 16
+
+#define PLAYER_CHICKEN 0xd
+#define PLAYER_ROBOBALL 0xe
+#define PLAYER_SEAGULL 0xf
+
 
 char map_data[] = {
 	/* type x y   indexes link to */
@@ -122,8 +145,8 @@ struct player enemy;
 
 char key;
 char steps;
+char player_has_reached_level_4;
 
-char num = 1;
 char k;
 
 void main() {
@@ -134,6 +157,7 @@ void main() {
 	srand(key);
 	
 	enemy_is_alive = 0;
+	player_has_reached_level_4 = 0;
 	
 	character_menu();
 	setup_video();
@@ -158,7 +182,7 @@ void main() {
 		players[i].standing = norma_tiles[i];
 		players[i].home_tile = norma_tiles[i];
 		players[i].player_num = i;
-		players[i].stars = 2;
+		players[i].stars = 1;
 	}
 	
 	draw_gui();
@@ -222,17 +246,33 @@ void main() {
 					draw_players();
 					wait_jiffies(50);
 				case TYPE_HOME:
-					if (players[game.whose_turn].hp < players[game.whose_turn].maxhp) {
-						++players[game.whose_turn].hp;
-					}
 					if (players[game.whose_turn].norma_type == NORMA_STAR) {
 						if (players[game.whose_turn].stars >= norma_stars[players[game.whose_turn].norma_level]) {
 							++players[game.whose_turn].norma_level;
+							players[game.whose_turn].player_state = STATE_NORMA;
+							draw_players();
+							wait_jiffies(45);
 						}
 					} else {
 						if (players[game.whose_turn].wins >= norma_wins[players[game.whose_turn].norma_level]) {
 							++players[game.whose_turn].norma_level;
+							players[game.whose_turn].player_state = STATE_NORMA;
+							draw_players();
+							wait_jiffies(45);
 						}
+					}
+					if (players[game.whose_turn].hp < players[game.whose_turn].maxhp) {
+						++players[game.whose_turn].hp;
+						players[game.whose_turn].player_state = STATE_NORMA;
+						draw_players();
+						wait_jiffies(30);
+					}
+					players[game.whose_turn].player_state = STATE_IDLE;
+					draw_players();
+					
+					if (!player_has_reached_level_4 && players[game.whose_turn].norma_level == 4) {
+						/* spawn a boss */
+						new_enemy(1);
 					}
 					break;
 				case TYPE_ENEMY:
@@ -300,23 +340,24 @@ void move_player() {
 		}
 		draw_players();
 		--steps;
-		if (steps != 0) {
-			for (i = 0; i < 4; ++i) {
-				if (i == game.whose_turn) { continue; }
-				if (players[i].standing == players[game.whose_turn].standing) {
-					waitforjiffy();
-					display_text_sprite(INDEX_STOP, SIZE_STOP, 160, 96);
-					while (1) {
-						key = keyboard_get();
-						if (key == 0x31) {
-							return;
-						} else if (key == 0x32) {
-							break;
-						}
+		for (i = 0; i < 4; ++i) {
+			if (i == game.whose_turn) { continue; }
+			if (players[i].standing == players[game.whose_turn].standing) {
+				waitforjiffy();
+				display_text_sprite(INDEX_ATTACK, SIZE_ATTACK, 160, 96);
+				while (1) {
+					key = keyboard_get();
+					if (key == 0x31) {
+						fight(&players[game.whose_turn], &players[i]);
+						return;
+					} else if (key == 0x32) {
+						break;
 					}
-					break;
 				}
+				break;
 			}
+		}
+		if (steps != 0) {
 			if (players[game.whose_turn].standing == players[game.whose_turn].home_tile) {
 				waitforjiffy();
 				display_text_sprite(INDEX_STOP, SIZE_STOP, 160, 96);
@@ -740,10 +781,11 @@ void fight(struct player *attacker, struct player *defender) {
 	
 	draw_horiz_band();
 	attack(attacker, defender, 1);
-	attack(defender, attacker, 0);
+	if (defender->hp > 0) { attack(defender, attacker, 0); }
 	
-	wait_jiffies(120);
+	wait_jiffies(45);
 	clear_sprites(0x128, 1);
+	clear_sprites(0x100, 1);
 	clear_layer1();
 	for (i = 0; i < 0x34; ++i) {
 		plot_tile(&(game_tiles[i]));
@@ -763,10 +805,39 @@ void draw_player_attack(struct player *p, char state, char right_side) {
 	POKE(0x9F23, 0);
 	POKE(0x9F23, 0xC | (1 ^ right_side));
 	POKE(0x9F23, 0xFB + p->player_num);
+	
+	if (right_side) {
+		POKEW(0x9F20, 0xFD80);
+		draw_hp_sprites(p->hp, right_side);
+	} else {
+		POKEW(0x9F20, 0xFD90);
+		draw_hp_sprites(p->hp, right_side);
+	}
 }
 
+void draw_hp_sprites(char hp, char right_side) {
+	POKE(0x9F23, INDEX_HP);
+	POKE(0x9F23, 0x4);
+	POKE(0x9F23, (right_side ? (320 - 64 - 4) : 74));
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 128 - 29);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, SIZE_HP | 1);
+	
+	POKE(0x9F23, 128 + hp);
+	POKE(0x9F23, 0x4);
+	POKE(0x9F23, (right_side ? (320 - 74 - 4) : 64));
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 128 - 28);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 1);
+}
+
+
 void attack(struct player *attacker, struct player *defender, char attacker_on_left) {
-	char damage; 
+	short damage; 
 	char attack_roll;
 	char defend_evade_roll;
 	char choice;
@@ -783,7 +854,7 @@ void attack(struct player *attacker, struct player *defender, char attacker_on_l
 		POKEW(0x9F20, 0xFD00);
 		POKE(0x9F22, 0x11);
 		draw_player_attack(attacker, STATE_ROLL, 1 ^ attacker_on_left);
-		wait_jiffies(30);
+		wait_jiffies(60);
 	} else {
 		attacker->player_state = STATE_ROLL;
 		display_text_sprite(INDEX_ATTACK, SIZE_ATTACK, attacker_on_left ? (160 - 24) : (160 + 24), 96);
@@ -825,7 +896,7 @@ void attack(struct player *attacker, struct player *defender, char attacker_on_l
 	if (defender->player_num == 4) {
 		choice = rand_byte() & 1;
 		clear_sprites(0x130 + (choice == ACTION_DEFEND ? 0x10 : 0), 2);
-		wait_jiffies(30);
+		wait_jiffies(60);
 	} else {
 		keyboard_get();
 		while (1) {
@@ -852,7 +923,7 @@ void attack(struct player *attacker, struct player *defender, char attacker_on_l
 		defender->player_state = STATE_IDLE;
 	}
 	defend_evade_roll = roll_die();
-	display_die_sprite(0x170, defend_evade_roll, !attacker_on_left ? 128 : (320 - 128 - 8), 128 - 32 - 8);
+	display_die_sprite(0x178, defend_evade_roll, !attacker_on_left ? 128 : (320 - 128 - 8), 128 - 32 - 8);
 	if (choice == ACTION_DEFEND) {
 		defend_evade_roll = defend_evade_roll + defender->defend + defender->defend_modifier - 6;
 	} else {
@@ -860,7 +931,7 @@ void attack(struct player *attacker, struct player *defender, char attacker_on_l
 	}
 	if (defend_evade_roll >= 128) { defend_evade_roll = 0; } 
 	wait_jiffies(20);
-	POKEW(0x9F20, 0xFD70);
+	POKEW(0x9F20, 0xFD78);
 	POKE(0x9F23, 128 + defend_evade_roll);
 	POKE(0x9F23, 0x4);
 	POKE(0x9F23, attacker_on_left ? (320 - 132 - 4) : 132);
@@ -887,18 +958,44 @@ void attack(struct player *attacker, struct player *defender, char attacker_on_l
 		}
 	} else {
 		defender->player_state = STATE_DAMAGED;
+		if (damage >= defender->hp) {
+			defender->hp = 0;
+			if (attacker->player_num != 4) {
+				if ((defender->player_num != 4 && defender->character_index != PLAYER_CHICKEN && defender->character_index != PLAYER_ROBOBALL && 		defender->character_index != PLAYER_SEAGULL) | defender->character_index >= 0xE3) {
+					attacker->wins += 2;
+				} else {
+					++attacker->wins;
+				}
+				if (defender->player_num == 4 && defender->character_index <= 0xE3 /* not a boss */) {
+					attacker->stars += defender->stars;
+					enemy_is_alive = 0;
+				} else if ( defender->character_index != PLAYER_CHICKEN && defender->character_index != PLAYER_ROBOBALL && defender->character_index != PLAYER_SEAGULL) {
+					damage = defender->stars >> 1;
+					attacker->stars += damage;
+					defender->stars -= damage;
+				} else {
+					damage = defender->stars >> 2;
+					attacker->stars += damage;
+					defender->stars -= damage;
+				}
+			}
+		} else {
+			defender->hp -= damage;
+			
+		}
 	}
 	
 	POKEW(0x9F20, 0xFD28);
 	POKE(0x9F22, 0x11);
 	draw_player_attack(defender, defender->player_state, attacker_on_left);
-	wait_jiffies(30);
+	wait_jiffies(12);
+	draw_attack_neg_x_offset = 0;
+	draw_attack_pos_x_offset = 0;
+	wait_jiffies(18);
 	if (defender->hp == 0) {
 		defender->player_state = STATE_DEAD;
 		defender->revive = defender->base_revive;
 	}
-	draw_attack_neg_x_offset = 0;
-	draw_attack_pos_x_offset = 0;
 	POKEW(0x9F20, 0xFD28);
 	POKE(0x9F22, 0x11);
 	draw_player_attack(defender, defender->player_state, attacker_on_left);
@@ -908,8 +1005,9 @@ void attack(struct player *attacker, struct player *defender, char attacker_on_l
 	if (defender->hp > 0) {
 			defender->player_state = STATE_IDLE;
 	}
+	
 	clear_sprites(0x130, 4);
-	clear_sprites(0x170, 1);
+	clear_sprites(0x170, 6);
 }
 
 
@@ -975,26 +1073,6 @@ void parse_map_data(char *data, char num_tiles) {
 #define LOAD_ADDRESS 0xA000
 #define TILES_CHR_FILELEN 2048
 #define CHARACTER_FILELEN 12288
-
-char setup_characters[][16] = {
-	"kai", // 0
-	"qp", // 1
-	"suguri", // 2
-	"marc", // 3
-	"yuki", // 4
-	"aru", // 5
-	"hime", // 6
-	"sora", // 7
-	"fernet", // 8
-	"peat", // 9
-	"mariepoppo", // a
-	"tomomo", // b
-	"mio", // c
-	"chicken", // $0d
-	"roboball", // $0e
-	"seagull", // $0f
-};
-#define SETUP_CHARACTERS_LEN 16
 
 void character_menu() {
 	char i;
@@ -1104,9 +1182,7 @@ char load_filename_string[32];
 void load_character_data() {
 	char i, j;
 	
-	change_directory("characters");
 	POKEW(0x4, 0x9F23);
-	
 	POKEW(0x9F20, 0x0000);
 	for (i = 0; i < 4; ++i) {
 		strcpy(load_filename_string, setup_characters[players[i].character_index]);
@@ -1139,7 +1215,6 @@ void load_character_data() {
 		
 		init_player_properties(&players[i] , player_data_table[players[i].character_index]);
 	}
-	change_directory("..");
 }
 
 void init_player_properties(struct player *player, char *data) {
@@ -1180,6 +1255,12 @@ void new_enemy(char is_boss) {
 	
 	init_player_properties(&enemy, enemy_properties_table + (index * 4));
 	enemy.player_num = 4;
+	enemy.character_index = 0xE0 + index;
+	if (is_boss) {
+		enemy.stars = 50;
+	} else {
+		enemy.stars = 3;
+	}
 }
 
 char enemy_names[][16] = {

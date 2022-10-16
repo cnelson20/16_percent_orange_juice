@@ -37,6 +37,9 @@ void draw_player_sprite(struct player *p, char sprite_table_index);
 #define INDEX_STAR 242
 #define SIZE_STAR 0x90
 
+#define INDEX_HP 248
+#define SIZE_HP 0x10
+
 #define INDEX_SIGN 250
 #define SIZE_SIGN 0xF0
 
@@ -73,6 +76,11 @@ void draw_gui();
 void attack(struct player *attacker, struct player *defender, char attacker_on_left);
 void fight(struct player *attacker, struct player *defender);
 
+extern char draw_attack_pos_x_offset;
+extern char draw_attack_neg_x_offset; 
+
+void draw_player_attack(struct player *p, char state, char right_side);
+void draw_hp_sprites(char hp, char right_side);
 
 void wait_jiffies(char num);
 
@@ -91,5 +99,7 @@ void load_enemy_vram(char enemy_index);
 void setup_video();
 
 char get_act_x(char tile_x, char tile_y);
+
+extern char base_palettes[][32];
 
 #endif
