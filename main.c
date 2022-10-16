@@ -1104,6 +1104,7 @@ char load_filename_string[32];
 void load_character_data() {
 	char i, j;
 	
+	change_directory("characters");
 	POKEW(0x4, 0x9F23);
 	
 	POKEW(0x9F20, 0x0000);
@@ -1138,6 +1139,7 @@ void load_character_data() {
 		
 		init_player_properties(&players[i] , player_data_table[players[i].character_index]);
 	}
+	change_directory("..");
 }
 
 void init_player_properties(struct player *player, char *data) {
@@ -1191,6 +1193,7 @@ char enemy_names[][16] = {
 
 void load_enemies_into_hiram() {
 	char i;
+	
 	for (i = 0; i < 6; ++i) {
 		cbm_k_setnam(enemy_names[i]);
 		cbm_k_setlfs(0xFF, DEVICE_NUM, 2);
