@@ -71,4 +71,8 @@ typedef struct game_info {
 #define NORMA_STAR 0
 #define NORMA_WIN 1
 
+#define ACTION_DEFEND 0
+#define ACTION_EVADE 1
+
+
 #endif

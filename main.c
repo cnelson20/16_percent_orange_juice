@@ -164,65 +164,87 @@ void main() {
 	draw_gui();
 	draw_players();
 	while (1) {
-		move_player();
-		switch (players[game.whose_turn].standing->type) {
-			case TYPE_BONUS:
-				display_text_sprite(INDEX_BONUS, SIZE_BONUS, 160, 96);
-				while (keyboard_get() != 0x20);
-				i = roll_die();
-				display_die_sprite(0x170, i, 200, 128 - 32 - 8);
-				i *= (players[game.whose_turn].norma_level > 3) ? 3 : players[game.whose_turn].norma_level;
-				players[game.whose_turn].stars += i;
-				wait_jiffies(60);
-				clear_sprites(0x170, 1);
-				break;
-			case TYPE_DROP:
-				display_text_sprite(INDEX_DROP, SIZE_DROP, 160, 96);
-				while (keyboard_get() != 0x20);
-				i = roll_die();
-				display_die_sprite(0x170, i, 200, 128 - 32 - 8);
-				i *= players[game.whose_turn].norma_level;
-				if (i >= players[game.whose_turn].stars) {
-					players[game.whose_turn].stars = 0;
-				} else {
-					players[game.whose_turn].stars -= i;
-				}				
-				wait_jiffies(60);
-				clear_sprites(0x170, 1);
-				break;
-			case TYPE_WARP:
-				clear_sprites(0xF0, 2);
-				wait_jiffies(20);
-				for (i = (rand_byte() & 0x1) + 1; i != 0; --i) {
-					do {
-							players[game.whose_turn].standing = players[game.whose_turn].standing->next[0];
-					} while (players[game.whose_turn].standing->type != TYPE_WARP);
-				}
-				draw_players();
-				wait_jiffies(50);
-			case TYPE_HOME:
-				if (players[game.whose_turn].hp < players[game.whose_turn].maxhp) {
-					++players[game.whose_turn].hp;
-				}
-				if (players[game.whose_turn].norma_type == NORMA_STAR) {
-					if (players[game.whose_turn].stars >= norma_stars[players[game.whose_turn].norma_level]) {
-						++players[game.whose_turn].norma_level;
+		if (players[game.whose_turn].hp == 0) {
+			display_text_sprite(INDEX_EVADE, SIZE_EVADE, 160, 96);
+			players[game.whose_turn].player_state = STATE_ROLL;
+			while (keyboard_get() != 0x20) {
+				draw_player_sprite(&players[game.whose_turn], 0);
+				players[game.whose_turn].player_state = players[game.whose_turn].player_state == STATE_IDLE ? STATE_ROLL : STATE_IDLE;
+				wait_jiffies(30);
+			}
+			i = roll_die();
+			display_die_sprite(0x170, i, 200, 128 - 32 - 8);
+			if (i >= players[game.whose_turn].revive) {
+				players[game.whose_turn].hp = players[game.whose_turn].maxhp;
+				players[game.whose_turn].player_state = STATE_IDLE;
+			} else {
+				--players[game.whose_turn].revive;
+				players[game.whose_turn].player_state = STATE_DEAD;
+			}
+			wait_jiffies(60);
+			clear_sprites(0xF0, 2);
+			clear_sprites(0x170, 1);
+		} else {
+			move_player();
+			switch (players[game.whose_turn].standing->type) {
+				case TYPE_BONUS:
+					display_text_sprite(INDEX_BONUS, SIZE_BONUS, 160, 96);
+					while (keyboard_get() != 0x20);
+					i = roll_die();
+					display_die_sprite(0x170, i, 200, 128 - 32 - 8);
+					i *= (players[game.whose_turn].norma_level > 3) ? 3 : players[game.whose_turn].norma_level;
+					players[game.whose_turn].stars += i;
+					wait_jiffies(60);
+					clear_sprites(0x170, 1);
+					break;
+				case TYPE_DROP:
+					display_text_sprite(INDEX_DROP, SIZE_DROP, 160, 96);
+					while (keyboard_get() != 0x20);
+					i = roll_die();
+					display_die_sprite(0x170, i, 200, 128 - 32 - 8);
+					i *= players[game.whose_turn].norma_level;
+					if (i >= players[game.whose_turn].stars) {
+						players[game.whose_turn].stars = 0;
+					} else {
+						players[game.whose_turn].stars -= i;
+					}				
+					wait_jiffies(60);
+					clear_sprites(0x170, 1);
+					break;
+				case TYPE_WARP:
+					clear_sprites(0xF0, 2);
+					wait_jiffies(20);
+					for (i = (rand_byte() & 0x1) + 1; i != 0; --i) {
+						do {
+								players[game.whose_turn].standing = players[game.whose_turn].standing->next[0];
+						} while (players[game.whose_turn].standing->type != TYPE_WARP);
 					}
-				} else {
-					if (players[game.whose_turn].wins >= norma_wins[players[game.whose_turn].norma_level]) {
-						++players[game.whose_turn].norma_level;
+					draw_players();
+					wait_jiffies(50);
+				case TYPE_HOME:
+					if (players[game.whose_turn].hp < players[game.whose_turn].maxhp) {
+						++players[game.whose_turn].hp;
 					}
-				}
-				break;
-			case TYPE_ENEMY:
-				if (!enemy_is_alive) {
-					new_enemy(0);
-					enemy_is_alive = 1;
-				}
-				fight(&players[game.whose_turn], &enemy);
-				break;
-			case TYPE_DRAW:
-				break;
+					if (players[game.whose_turn].norma_type == NORMA_STAR) {
+						if (players[game.whose_turn].stars >= norma_stars[players[game.whose_turn].norma_level]) {
+							++players[game.whose_turn].norma_level;
+						}
+					} else {
+						if (players[game.whose_turn].wins >= norma_wins[players[game.whose_turn].norma_level]) {
+							++players[game.whose_turn].norma_level;
+						}
+					}
+					break;
+				case TYPE_ENEMY:
+					if (!enemy_is_alive) {
+						new_enemy(0);
+						enemy_is_alive = 1;
+					}
+					fight(&players[game.whose_turn], &enemy);
+					break;
+				case TYPE_DRAW:
+					break;
+			}
 		}
 		draw_gui();
 		clear_sprites(0xF0, 2);
@@ -620,8 +642,8 @@ void draw_gui() {
 		POKE(0x9F23, 0x03);
 		
 		set_base_gui_x_y(i);
-		gui_base_y += 12;
-		gui_base_x += 18;
+		gui_base_y += 9;
+		gui_base_x += 20;
 		stars_ten = players[i].wins;
 		if (stars_ten >= 10) {
 			POKE(0x9F23, 128 + stars_ten / 10);
@@ -644,8 +666,8 @@ void draw_gui() {
 		POKE(0x9F23, 0x03);		
 		
 		set_base_gui_x_y(i);
-		gui_base_y += 23;		
-		gui_base_x += 17;		
+		gui_base_y += 17;		
+		gui_base_x += 20;		
 		POKE(0x9F23, 128 + players[i].norma_level);
 		POKE(0x9F23, 0x4);
 		POKE(0x9F23, gui_base_x);
@@ -654,6 +676,19 @@ void draw_gui() {
 		POKE(0x9F23, gui_base_y >> 8);
 		POKE(0x9F23, 0xC);
 		POKE(0x9F23, 0x03);
+		
+		set_base_gui_x_y(i);
+		gui_base_y += 25;		
+		gui_base_x += 14;
+		POKE(0x9F23, 128 + players[i].hp);
+		POKE(0x9F23, 0x4);
+		POKE(0x9F23, gui_base_x);
+		POKE(0x9F23, gui_base_x >> 8);
+		POKE(0x9F23, gui_base_y);
+		POKE(0x9F23, gui_base_y >> 8);
+		POKE(0x9F23, 0xC);
+		POKE(0x9F23, 0x03);
+		
 		
 		POKE(0x9F23, INDEX_CIRCLE);
 		POKE(0x9F23, 0x5);
@@ -715,54 +750,58 @@ void fight(struct player *attacker, struct player *defender) {
 	}
 }
 
-void attack(struct player *attacker, struct player *defender, char attacker_on_left) {
-	short val; 
-	char attack_roll;
-	char defend_evade_roll;
-	
-	/* draw defender */
-	POKE(0x9F22, 0x11);
-	POKEW(0x9F20, 0xFD28);
-	val = (defender->player_num * 6 + 0) * 64;
+char draw_attack_pos_x_offset;
+char draw_attack_neg_x_offset;
+
+void draw_player_attack(struct player *p, char state, char right_side) {
+	short val = (p->player_num * 6 + state) * 64;
 	POKE(0x9F23, val);
 	POKE(0x9F23, 8 | (val >> 8));
-	POKE(0x9F23, attacker_on_left ? (320 - 80 - 64) : 80);
+	POKE(0x9F23, (right_side ? (320 - 80 - 64) : 80) + draw_attack_pos_x_offset - draw_attack_neg_x_offset);
 	POKE(0x9F23, 0);
 	POKE(0x9F23, 128 - 32);
 	POKE(0x9F23, 0);
-	POKE(0x9F23, 0xC | (1 ^ attacker_on_left));
-	POKE(0x9F23, 0xFB + defender->player_num);
+	POKE(0x9F23, 0xC | (1 ^ right_side));
+	POKE(0x9F23, 0xFB + p->player_num);
+}
+
+void attack(struct player *attacker, struct player *defender, char attacker_on_left) {
+	char damage; 
+	char attack_roll;
+	char defend_evade_roll;
+	char choice;
 	
-	attacker->player_state = STATE_ROLL;
-	while (1) {
+	draw_attack_neg_x_offset = 0;
+	draw_attack_pos_x_offset = 0;
+	/* draw defender */
+	POKE(0x9F22, 0x11);
+	POKEW(0x9F20, 0xFD28);
+	draw_player_attack(defender, STATE_IDLE, attacker_on_left);
+	
+	if (attacker->player_num == 4) {
 		/* draw attacker */
 		POKEW(0x9F20, 0xFD00);
 		POKE(0x9F22, 0x11);
-		val = (attacker->player_num * 6 + attacker->player_state) * 64;
-		POKE(0x9F23, val);
-		POKE(0x9F23, 8 | (val >> 8));
-		POKE(0x9F23, attacker_on_left ? 80 : (320 - 80 - 64));
-		POKE(0x9F23, 0);
-		POKE(0x9F23, 128 - 32);
-		POKE(0x9F23, 0);
-		POKE(0x9F23, 0xC | attacker_on_left);
-		POKE(0x9F23, 0xFB + attacker->player_num);
+		draw_player_attack(attacker, STATE_ROLL, 1 ^ attacker_on_left);
 		wait_jiffies(30);
-		if (keyboard_get() == 0x20) { break; }
-		attacker->player_state = attacker->player_state == STATE_IDLE ? STATE_ROLL : STATE_IDLE;
+	} else {
+		attacker->player_state = STATE_ROLL;
+		display_text_sprite(INDEX_ATTACK, SIZE_ATTACK, attacker_on_left ? (160 - 24) : (160 + 24), 96);
+		while (1) {
+			/* draw attacker */
+			POKEW(0x9F20, 0xFD00);
+			POKE(0x9F22, 0x11);
+			draw_player_attack(attacker, attacker->player_state, 1 ^ attacker_on_left);
+			wait_jiffies(30);
+			if (keyboard_get() == 0x20) { break; }
+			attacker->player_state = attacker->player_state == STATE_IDLE ? STATE_ROLL : STATE_IDLE;
+		}
+		clear_sprites(0xF0, 2);
 	}
 	attacker->player_state = STATE_ATTACK;
 	POKEW(0x9F20, 0xFD00);
 	POKE(0x9F22, 0x11);
-	val = (attacker->player_num * 6 + attacker->player_state) * 64;
-	POKE(0x9F23, val);
-	POKE(0x9F23, 8 | (val >> 8));
-	POKE(0x9F23, attacker_on_left ? 80 : (320 - 80 - 64));
-	POKE(0x9F23, 0);
-	POKE(0x9F23, 128 - 32);
-	POKE(0x9F23, 0);
-	POKE(0x9F23, 0xC | attacker_on_left);
-	POKE(0x9F23, 0xFB + attacker->player_num);
+	draw_player_attack(attacker, attacker->player_state, 1 ^ attacker_on_left);
 	attack_roll = roll_die();
 	display_die_sprite(0x170, attack_roll, attacker_on_left ? 128 : (320 - 128 - 8), 128 - 32 - 8);
 	attack_roll = attack_roll + attacker->attack + attacker->attack_modifier - 6;
@@ -780,11 +819,95 @@ void attack(struct player *attacker, struct player *defender, char attacker_on_l
 	wait_jiffies(20);
 	
 	display_text_custom_offset = 0x130;
-	display_text_sprite(INDEX_ATTACK, SIZE_ATTACK, 0xF000 | (160 - 96), 128 + 32);	
+	display_text_sprite(INDEX_DEFEND, SIZE_DEFEND, 0xF000 | (160 - 96), 128 + 32 + 8);	
 	display_text_custom_offset = 0x140;
-	display_text_sprite(INDEX_DEFEND, SIZE_DEFEND, 0xF000 | (160 + 96), 128 + 32);
+	display_text_sprite(INDEX_EVADE, SIZE_EVADE, 0xF000 | (160 + 96), 128 + 32 + 8);
+	if (defender->player_num == 4) {
+		choice = rand_byte() & 1;
+		clear_sprites(0x130 + (choice == ACTION_DEFEND ? 0x10 : 0), 2);
+		wait_jiffies(30);
+	} else {
+		keyboard_get();
+		while (1) {
+			choice = keyboard_get();
+			if (choice == 0x31) {
+				choice = ACTION_DEFEND;
+				break;
+			} else if (choice == 0x32) {
+				choice = ACTION_EVADE;
+				break;
+			}
+			waitforjiffy();
+		}
+		clear_sprites(0x130 + (choice == ACTION_DEFEND ? 0x10 : 0), 2);
+		wait_jiffies(30);
+		defender->player_state = STATE_ROLL;
+		while (keyboard_get() != 0x20) {
+			POKE(0x9F22, 0x11);
+			POKEW(0x9F20, 0xFD28);
+			draw_player_attack(defender, defender->player_state, attacker_on_left);
+			defender->player_state = defender->player_state == STATE_IDLE ? STATE_ROLL : STATE_IDLE;
+			wait_jiffies(30);
+		}
+		defender->player_state = STATE_IDLE;
+	}
+	defend_evade_roll = roll_die();
+	display_die_sprite(0x170, defend_evade_roll, !attacker_on_left ? 128 : (320 - 128 - 8), 128 - 32 - 8);
+	if (choice == ACTION_DEFEND) {
+		defend_evade_roll = defend_evade_roll + defender->defend + defender->defend_modifier - 6;
+	} else {
+		defend_evade_roll = defend_evade_roll + defender->evade + defender->evade_modifier - 6;
+	}
+	if (defend_evade_roll >= 128) { defend_evade_roll = 0; } 
+	wait_jiffies(20);
+	POKEW(0x9F20, 0xFD70);
+	POKE(0x9F23, 128 + defend_evade_roll);
+	POKE(0x9F23, 0x4);
+	POKE(0x9F23, attacker_on_left ? (320 - 132 - 4) : 132);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 128 - 32 + 4);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 0x1);
+	if (choice == ACTION_DEFEND) {
+		if (defend_evade_roll >= attack_roll) {
+			damage = 1;
+		} else {
+			damage = attack_roll - defend_evade_roll;
+		}
+	} else {
+		damage = defend_evade_roll > attack_roll ? 0 : attack_roll;
+	}
+	if (damage == 0) {
+		defender->player_state = STATE_IDLE;
+		if (attacker_on_left) {
+			draw_attack_pos_x_offset = 12;
+		} else {
+			draw_attack_neg_x_offset = 12;
+		}
+	} else {
+		defender->player_state = STATE_DAMAGED;
+	}
 	
-	wait_jiffies(60);
+	POKEW(0x9F20, 0xFD28);
+	POKE(0x9F22, 0x11);
+	draw_player_attack(defender, defender->player_state, attacker_on_left);
+	wait_jiffies(30);
+	if (defender->hp == 0) {
+		defender->player_state = STATE_DEAD;
+		defender->revive = defender->base_revive;
+	}
+	draw_attack_neg_x_offset = 0;
+	draw_attack_pos_x_offset = 0;
+	POKEW(0x9F20, 0xFD28);
+	POKE(0x9F22, 0x11);
+	draw_player_attack(defender, defender->player_state, attacker_on_left);
+	wait_jiffies(30);
+	
+	attacker->player_state = STATE_IDLE;
+	if (defender->hp > 0) {
+			defender->player_state = STATE_IDLE;
+	}
 	clear_sprites(0x130, 4);
 	clear_sprites(0x170, 1);
 }

@@ -49,6 +49,8 @@ void draw_player_sprite(struct player *p, char sprite_table_index);
 #define INDEX_DEFEND (256 + 126)
 #define SIZE_DEFEND 0x20
 
+#define INDEX_EVADE (256 + 130)
+#define SIZE_EVADE 0x20
 
 extern short display_text_custom_offset;
 void display_text_sprite(short, char size, short x, char y);
