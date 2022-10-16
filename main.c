@@ -6,25 +6,15 @@
 
 #include "main.h"
 #include "structs.h"
+#include "routines.h"
 
 #define DEVICE_NUM 8
 
-#define RAM_BANK *((char *)0)
+#define RAM_BANK *((volatile char *)0)
 
 #define NUM_TO_ASCII(x) (x >= 10 ? (x - 10 + 0x41) : (x + 0x30))
 
 extern void waitforjiffy();
-extern void __fastcall__ plot_tile(struct board_tile *t);
-extern void __fastcall__ print_str(char *str);
-extern char __fastcall__ keyboard_get();
-extern char __fastcall__ dig_to_ascii(char digit);
-extern char __fastcall__ sabs(char a, char b);
-extern char __fastcall__ rand_byte();
-extern char __fastcall__ roll_die();
-
-extern void clear_layer1();
-extern void clear_layer1_blue();
-
 
 char setup_characters[][16] = {
 	"kai", // 0
@@ -342,7 +332,7 @@ void move_player() {
 		--steps;
 		for (i = 0; i < 4; ++i) {
 			if (i == game.whose_turn) { continue; }
-			if (players[i].standing == players[game.whose_turn].standing) {
+			if (players[i].standing == players[game.whose_turn].standing && players[i].hp > 0) {
 				waitforjiffy();
 				display_text_sprite(INDEX_ATTACK, SIZE_ATTACK, 160, 96);
 				while (1) {
