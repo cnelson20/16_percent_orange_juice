@@ -179,8 +179,10 @@ void main() {
 	draw_players();
 	while (1) {
 		if (players[game.whose_turn].hp == 0) {
-			display_text_sprite(INDEX_EVADE, SIZE_EVADE, 160, 96);
+			center_around_player(&players[game.whose_turn]);
+			draw_players();
 			players[game.whose_turn].player_state = STATE_ROLL;
+			display_text_sprite(INDEX_REVIVE, SIZE_REVIVE, 160, 96);
 			while (keyboard_get() != 0x20) {
 				draw_player_sprite(&players[game.whose_turn], 0);
 				players[game.whose_turn].player_state = players[game.whose_turn].player_state == STATE_IDLE ? STATE_ROLL : STATE_IDLE;
@@ -195,6 +197,7 @@ void main() {
 				--players[game.whose_turn].revive;
 				players[game.whose_turn].player_state = STATE_DEAD;
 			}
+			draw_player_sprite(&players[game.whose_turn], 0);
 			wait_jiffies(60);
 			clear_sprites(0xF0, 2);
 			clear_sprites(0x170, 1);
@@ -251,7 +254,7 @@ void main() {
 							wait_jiffies(45);
 						}
 					}
-					if (players[game.whose_turn].hp < players[game.whose_turn].maxhp) {
+					if (players[game.whose_turn].hp != 0 && players[game.whose_turn].hp < players[game.whose_turn].maxhp) {
 						++players[game.whose_turn].hp;
 						players[game.whose_turn].player_state = STATE_NORMA;
 						draw_players();
@@ -266,6 +269,9 @@ void main() {
 					}
 					break;
 				case TYPE_ENEMY:
+					if (players[game.whose_turn].hp == 0) {
+						break;
+					}
 					if (!enemy_is_alive) {
 						new_enemy(0);
 						enemy_is_alive = 1;

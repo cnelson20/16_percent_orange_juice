@@ -1,8 +1,10 @@
 all: OJ.PRG
-	
 
-OJ.PRG: main.c main.h routines.s
-	cl65 -t cx16 -Cl main.c waitforjiffy.s routines.s -o OJ.PRG
+CC = cl65
+FLAGS = -tcx16 -Cl -m oj.map -o OJ.PRG
+
+OJ.PRG: main.c main.h routines.s waitforjiffy.s
+	$(CC) $(FLAGS) main.c waitforjiffy.s routines.s
 
 build: OJ.PRG
 	./scripts/mount_sd.sh oj.img

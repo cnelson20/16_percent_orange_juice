@@ -1,3 +1,6 @@
+#ifndef _ROUTINES_H
+#define _ROUTINES_H
+
 #include "structs.h"
 
 char __fastcall__ roll_die();
@@ -13,3 +16,5 @@ void __fastcall__ clear_layer1();
 void __fastcall__ plot_tile(struct board_tile *tile);
 
 void __fastcall__ draw_horiz_band();
+
+#endif

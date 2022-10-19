@@ -14,6 +14,15 @@
 	has_neighbor_sw .byte
 .endstruct 
 
+BOARD_TILE_X = 0
+BOARD_TILE_Y = 1
+BOARD_TILE_TYPE = 2
+BOARD_TILE_NEXT = 3
+BOARD_TILE_HAS_NE = 9
+BOARD_TILE_HAS_NW = 10
+BOARD_TILE_HAS_SE = 11
+BOARD_TILE_HAS_SW = 12
+
 FILL_IN_TILE = 22
 FULL_TILE = 23
 
@@ -31,13 +40,13 @@ X_OFFSET = 6
 _plot_tile:
 		sta ptr1
 		stx ptr1 + 1
-		ldy #board_tile::xx
+		ldy #BOARD_TILE_X
 		lda (ptr1), Y
 		
 		sta tmp1
 		tax 
 		
-		ldy #board_tile::yy
+		ldy #BOARD_TILE_Y
 		lda (ptr1), Y
 		
 		sta tmp2
@@ -79,7 +88,7 @@ _plot_tile:
 		lda #$10
 		sta $9F22
 		
-		ldy #board_tile::type
+		ldy #BOARD_TILE_TYPE
 		lda (ptr1), Y
 		asl
 		sec 
@@ -87,7 +96,7 @@ _plot_tile:
 		;inc A
 		sta tmp2
 		
-		ldy #board_tile::has_neighbor_nw
+		ldy #BOARD_TILE_HAS_NW
 		lda (ptr1), Y
 		beq :+
 		lda $9F20
@@ -120,7 +129,7 @@ _plot_tile:
 		sta $9F23
 		:
 		
-		ldy #board_tile::has_neighbor_ne
+		ldy #BOARD_TILE_HAS_NE
 		lda (ptr1), Y
 		beq :+
 		lda tmp2
@@ -147,7 +156,7 @@ _plot_tile:
 		lda tmp1
 		sta $9F20
 		
-		ldy #board_tile::has_neighbor_nw
+		ldy #BOARD_TILE_HAS_NW
 		ldx tmp2
 		lda (ptr1), Y
 		beq :+
@@ -173,7 +182,7 @@ _plot_tile:
 		stz $9F23
 		
 		ldx tmp2
-		ldy #board_tile::has_neighbor_ne
+		ldy #BOARD_TILE_HAS_NE
 		lda (ptr1), Y
 		beq :+
 		inx
@@ -194,7 +203,7 @@ _plot_tile:
 		sta $9F20
 		
 		ldx tmp2
-		ldy #board_tile::has_neighbor_sw
+		ldy #BOARD_TILE_HAS_SW
 		lda (ptr1), Y
 		beq :+
 		dec $9F20
@@ -219,7 +228,7 @@ _plot_tile:
 		stz $9F23
 		
 		ldx tmp2
-		ldy #board_tile::has_neighbor_se
+		ldy #BOARD_TILE_HAS_SE
 		lda (ptr1), Y
 		beq :+
 		inx
@@ -239,7 +248,7 @@ _plot_tile:
 		lda tmp1
 		sta $9F20
 		
-		ldy #board_tile::has_neighbor_sw
+		ldy #BOARD_TILE_HAS_SW
 		lda (ptr1), Y
 		beq :+
 		lda $9F20
@@ -275,7 +284,7 @@ _plot_tile:
 		sta $9F23
 		:
 		
-		ldy #board_tile::has_neighbor_se
+		ldy #BOARD_TILE_HAS_SE
 		lda (ptr1), Y
 		beq :+
 		ldx tmp2 

@@ -1,15 +1,15 @@
-RDTIM = $FFDE
+.SETCPU "65c02"
 
-.importzp ptr1
+RDTIM = $FFDE
 
 .export _waitforjiffy
 _waitforjiffy:
 jsr RDTIM
-sta @byte
+sta tempbyte
 :
 jsr RDTIM
-cmp #$FF
-@byte = * - 1
+cmp tempbyte
 beq :-
-
 rts
+tempbyte:
+	.byte 0
