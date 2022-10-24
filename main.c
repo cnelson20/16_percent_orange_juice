@@ -804,31 +804,106 @@ void draw_player_attack(struct player *p, char state, char right_side) {
 	
 	if (right_side) {
 		POKEW(0x9F20, 0xFD80);
-		draw_hp_sprites(p->hp, right_side);
+		draw_hp_sprites(p, right_side);
 	} else {
-		POKEW(0x9F20, 0xFD90);
-		draw_hp_sprites(p->hp, right_side);
+		POKEW(0x9F20, 0xFDC0);
+		draw_hp_sprites(p, right_side);
 	}
 }
 
-void draw_hp_sprites(char hp, char right_side) {
+void draw_hp_sprites(struct player *p, char right_side) {
+	short temp;
+	
 	POKE(0x9F23, INDEX_HP);
 	POKE(0x9F23, 0x4);
 	POKE(0x9F23, (right_side ? (320 - 64 - 4) : 74));
 	POKE(0x9F23, 0);
-	POKE(0x9F23, 128 - 29);
+	POKE(0x9F23, 128 - 31);
 	POKE(0x9F23, 0);
 	POKE(0x9F23, 0xC);
 	POKE(0x9F23, SIZE_HP | 1);
 	
-	POKE(0x9F23, 128 + hp);
+	POKE(0x9F23, 128 + p->hp);
 	POKE(0x9F23, 0x4);
 	POKE(0x9F23, (right_side ? (320 - 74 - 4) : 64));
 	POKE(0x9F23, 0);
-	POKE(0x9F23, 128 - 28);
+	POKE(0x9F23, 128 - 30);
 	POKE(0x9F23, 0);
 	POKE(0x9F23, 0xC);
 	POKE(0x9F23, 1);
+	
+	POKE(0x9F23, (p->attack + p->attack_modifier >= 6) ? INDEX_PLUS : INDEX_MINUS);
+	POKE(0x9F23, 0x5);
+	temp = (right_side ? (320 - 40 - 4) : 30);
+	__asm__ ("lda %v", temp);
+	__asm__ ("sta $9F23");
+	__asm__ ("lda %v + 1", temp);
+	__asm__ ("sta $9F23");
+	POKE(0x9F23, 128 - 20);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 1);
+	
+	POKE(0x9F23, 128 + sabs(p->attack + p->attack_modifier, 6));
+	POKE(0x9F23, 0x4);
+	temp = (right_side ? (320 - 30 - 4) : 40);
+	__asm__ ("lda %v", temp);
+	__asm__ ("sta $9F23");
+	__asm__ ("lda %v + 1", temp);
+	__asm__ ("sta $9F23");
+	POKE(0x9F23, 128 - 20);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 1);
+	
+	POKE(0x9F23, (p->defend + p->defend_modifier >= 6) ? INDEX_PLUS : INDEX_MINUS);
+	POKE(0x9F23, 0x5);
+	temp = (right_side ? (320 - 40 - 4) : 30);
+	__asm__ ("lda %v", temp);
+	__asm__ ("sta $9F23");
+	__asm__ ("lda %v + 1", temp);
+	__asm__ ("sta $9F23");
+	POKE(0x9F23, 128 - 8);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 1);
+	
+	POKE(0x9F23, 128 + sabs(p->defend + p->defend_modifier, 6));
+	POKE(0x9F23, 0x4);
+	temp = (right_side ? (320 - 30 - 4) : 40);
+	__asm__ ("lda %v", temp);
+	__asm__ ("sta $9F23");
+	__asm__ ("lda %v + 1", temp);
+	__asm__ ("sta $9F23");
+	POKE(0x9F23, 128 - 8);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 1);
+	
+	POKE(0x9F23, (p->evade + p->evade_modifier >= 6) ? INDEX_PLUS : INDEX_MINUS);
+	POKE(0x9F23, 0x5);
+	temp = (right_side ? (320 - 40 - 4) : 30);
+	__asm__ ("lda %v", temp);
+	__asm__ ("sta $9F23");
+	__asm__ ("lda %v + 1", temp);
+	__asm__ ("sta $9F23");
+	POKE(0x9F23, 128 + 4);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 1);
+	
+	POKE(0x9F23, 128 + sabs(p->evade + p->evade_modifier, 6));
+	POKE(0x9F23, 0x4);
+	temp = (right_side ? (320 - 30 - 4) : 40);
+	__asm__ ("lda %v", temp);
+	__asm__ ("sta $9F23");
+	__asm__ ("lda %v + 1", temp);
+	__asm__ ("sta $9F23");
+	POKE(0x9F23, 128 + 4);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 1);
+	
 }
 
 
@@ -998,12 +1073,13 @@ void attack(struct player *attacker, struct player *defender, char attacker_on_l
 	wait_jiffies(30);
 	
 	attacker->player_state = STATE_IDLE;
-	if (defender->hp > 0) {
+	if (defender->hp != 0) {
 			defender->player_state = STATE_IDLE;
 	}
-	
 	clear_sprites(0x130, 4);
-	clear_sprites(0x170, 6);
+	clear_sprites(0x170, 2);
+	clear_sprites(0x180, 8);
+	clear_sprites(0x1C0, 8);
 }
 
 

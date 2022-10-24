@@ -58,6 +58,12 @@ void draw_player_sprite(struct player *p, char sprite_table_index);
 #define INDEX_REVIVE (256 + 134)
 #define SIZE_REVIVE 0x20
 
+#define INDEX_PLUS (256 + 138)
+#define SIZE_PLUS 0x00
+
+#define INDEX_MINUS (256 + 139)
+#define SIZE_MINUS 0x00
+
 extern short display_text_custom_offset;
 void display_text_sprite(short, char size, short x, char y);
 
@@ -83,7 +89,7 @@ extern char draw_attack_pos_x_offset;
 extern char draw_attack_neg_x_offset; 
 
 void draw_player_attack(struct player *p, char state, char right_side);
-void draw_hp_sprites(char hp, char right_side);
+void draw_hp_sprites(struct player *p, char right_side);
 
 void wait_jiffies(char num);
 
