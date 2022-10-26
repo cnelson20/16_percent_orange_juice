@@ -453,7 +453,8 @@ _draw_horiz_band:
 	ror A
 	lsr tmp1
 	ror A 
-	lsr A 
+	lsr tmp1
+	ror A 
 	and #%11111110
 	sta tmp1
 	
@@ -478,10 +479,16 @@ _draw_horiz_band:
 	sta $9F20
 	ldx #20
 	:
+	lda $9F21
+	pha
 	lda #18
 	sta $9F23
 	lda #$30
 	sta $9F23
+	
+	pla 
+	sta $9F21
+	
 	dex 
 	bne :-
 	inc $9F21

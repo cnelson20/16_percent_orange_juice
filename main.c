@@ -206,6 +206,7 @@ void main() {
 			move_player();
 			switch (players[game.whose_turn].standing->type) {
 				case TYPE_BONUS:
+					draw_player_sprite(&players[game.whose_turn], 0);
 					display_text_sprite(INDEX_BONUS, SIZE_BONUS, 160, 96);
 					while (keyboard_get() != 0x20);
 					i = roll_die();
@@ -216,6 +217,7 @@ void main() {
 					clear_sprites(0x170, 1);
 					break;
 				case TYPE_DROP:
+					draw_player_sprite(&players[game.whose_turn], 0);
 					display_text_sprite(INDEX_DROP, SIZE_DROP, 160, 96);
 					while (keyboard_get() != 0x20);
 					i = roll_die();
@@ -996,7 +998,11 @@ void attack(struct player *attacker, struct player *defender, char attacker_on_l
 	display_text_custom_offset = 0x140;
 	display_text_sprite(INDEX_EVADE, SIZE_EVADE, 0xF000 | (160 + 96), 128 + 32 + 8);
 	if (defender->player_num == 4) {
-		choice = rand_byte() & 1;
+		if (defender->hp == 1 || attack_roll == 1) {
+			choice = ACTION_EVADE;
+		} else {
+			choice = rand_byte() & 1;
+		}
 		clear_sprites(0x130 + (choice == ACTION_DEFEND ? 0x10 : 0), 2);
 		wait_jiffies(60);
 	} else {
