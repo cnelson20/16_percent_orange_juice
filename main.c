@@ -183,6 +183,7 @@ void main() {
 			draw_players();
 			players[game.whose_turn].player_state = STATE_ROLL;
 			display_text_sprite(INDEX_REVIVE, SIZE_REVIVE, 160, 96);
+			display_player_no(game.whose_turn + 1, 160, 96);
 			while (keyboard_get() != 0x20) {
 				draw_player_sprite(&players[game.whose_turn], 0);
 				players[game.whose_turn].player_state = players[game.whose_turn].player_state == STATE_IDLE ? STATE_ROLL : STATE_IDLE;
@@ -199,7 +200,7 @@ void main() {
 			}
 			draw_player_sprite(&players[game.whose_turn], 0);
 			wait_jiffies(60);
-			clear_sprites(0xF0, 2);
+			clear_sprites(0xE0, 4);
 			clear_sprites(0x170, 1);
 		} else {
 			move_player();
@@ -229,7 +230,7 @@ void main() {
 					clear_sprites(0x170, 1);
 					break;
 				case TYPE_WARP:
-					clear_sprites(0xF0, 2);
+					clear_sprites(0xE0, 4);
 					wait_jiffies(20);
 					for (i = (rand_byte() & 0x1) + 1; i != 0; --i) {
 						do {
@@ -283,7 +284,7 @@ void main() {
 			}
 		}
 		draw_gui();
-		clear_sprites(0xF0, 2);
+		clear_sprites(0xE0, 4);
 		game.whose_turn = (game.whose_turn + 1) % 4;
 		if (game.whose_turn == 0) {
 			for (i = 0; i < 4; i++) {
@@ -299,6 +300,7 @@ void move_player() {
 	
 	draw_players();
 	display_text_sprite(INDEX_CLICK, SIZE_CLICK, 160, 96);
+	display_player_no(game.whose_turn + 1, 160, 96);
 	
 	i = 0;
 	while (keyboard_get() != 0x20) {
@@ -402,6 +404,8 @@ void draw_players() {
 	}
 }
 
+char bubble_sprite_hflip = 0;
+
 void display_bubble_sprite(short x, char y) {
 	POKE(0x9F23, 128 + 10);
 	POKE(0x9F23, 0x4);
@@ -409,7 +413,7 @@ void display_bubble_sprite(short x, char y) {
 	POKE(0x9F23, x >> 8);
 	POKE(0x9F23, y);
 	POKE(0x9F23, 0);
-	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 0xC | bubble_sprite_hflip);
 	POKE(0x9F23, 0xF1);
 }
 
@@ -523,6 +527,29 @@ void display_text_sprite(short index, char size, short x, char y) {
 	display_bubble_sprite(x - 32, y - 32);
 }
 
+void display_player_no(char pnum, short x, char y) {
+
+	POKEW(0x9F20, 0xFCE0);
+	POKE(0x9F22, 0x11);
+		
+	POKE(0x9F23, INDEX_P_PLAYER);
+	POKE(0x9F23, 0x5);
+	POKE(0x9F23, x - 8);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, y - 16);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 0x01);
+	
+	POKE(0x9F23, 128 + pnum);
+	POKE(0x9F23, 0x4);
+	POKE(0x9F23, x);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, y - 16);
+	POKE(0x9F23, 0);
+	POKE(0x9F23, 0xC);
+	POKE(0x9F23, 0x01);
+}
 
 void draw_player_sprite(struct player *p, char sprite_table_index) {
 	short val, val2;
@@ -758,6 +785,7 @@ extern void draw_horiz_band();
 void fight(struct player *attacker, struct player *defender) {
 	char i;
 	
+	clear_sprites(0xE0, 2);
 	clear_sprites(0xF0, 2);
 	wait_jiffies(30);
 	i = 0;
@@ -928,7 +956,9 @@ void attack(struct player *attacker, struct player *defender, char attacker_on_l
 		wait_jiffies(60);
 	} else {
 		attacker->player_state = STATE_ROLL;
+		bubble_sprite_hflip = attacker_on_left ^ 1;
 		display_text_sprite(INDEX_ATTACK, SIZE_ATTACK, attacker_on_left ? (160 - 24) : (160 + 24), 96);
+		bubble_sprite_hflip = 0;
 		while (1) {
 			/* draw attacker */
 			POKEW(0x9F20, 0xFD00);

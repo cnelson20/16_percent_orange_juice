@@ -64,8 +64,13 @@ void draw_player_sprite(struct player *p, char sprite_table_index);
 #define INDEX_MINUS (256 + 139)
 #define SIZE_MINUS 0x00
 
+#define INDEX_P_PLAYER (256 + 140)
+#define SIZE_P_PLAYER 0x00
+
 extern short display_text_custom_offset;
 void display_text_sprite(short, char size, short x, char y);
+
+void display_player_no(char pnum, short x, char y);
 
 void display_die_sprite(short offset, char roll, char x, char y);
 
