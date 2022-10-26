@@ -12,4 +12,6 @@ build: OJ.PRG
 	sudo cp SPRITES.CHR TILES.CHR mnt/
 	sudo cp CHARACTERS/* mnt/
 	./scripts/close_sd.sh
-	
+
+run: build OJ.PRG
+	/mnt/d/box16/box16.exe -sdcard oj.img -prg OJ.PRG -run	
