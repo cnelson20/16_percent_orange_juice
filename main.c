@@ -239,6 +239,7 @@ void main() {
 					}
 					draw_players();
 					wait_jiffies(50);
+					break;
 				case TYPE_HOME:
 					if (players[game.whose_turn].norma_type == NORMA_STAR) {
 						if (players[game.whose_turn].stars >= norma_stars[players[game.whose_turn].norma_level]) {
