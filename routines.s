@@ -1,6 +1,12 @@
 .importzp tmp1, tmp2, tmp3
 .importzp ptr1, ptr2
 
+.include "cx16.inc"
+r0 := $02
+r1 := $04
+r2 := $06
+r3 := $08
+
 .struct board_tile
 	xx .byte
 	yy .byte
@@ -418,7 +424,7 @@ _sabs:
 @temp:
 	.word 0
 	
-.import _rand
+.import _rand, _srand
 
 ;
 ; char __fastcall__ rand_byte();
@@ -431,6 +437,18 @@ _rand_byte:
 	ldx #0
 	rts
 
+clock_get_date_time = $FF50
+
+;
+; void setup_rand();
+;
+.export _setup_rand
+_setup_rand:
+	jsr clock_get_date_time
+	ldx r2 ; RTC minutes (0-59)
+	lda r2 + 1 ; RTC seconds (0-59)
+	jmp _srand ; call srand & don't return
+	
 ;
 ; char __fastcall__ roll_die();
 ;

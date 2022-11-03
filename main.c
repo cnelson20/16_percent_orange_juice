@@ -139,12 +139,12 @@ char player_has_reached_level_4;
 
 char k;
 
+extern void setup_rand();
+
 void main() {
 	static unsigned short i;
 	
-	__asm__ ("jsr $FFDE");
-	__asm__ ("sta %v", key);
-	srand(key);
+	setup_rand();
 	
 	enemy_is_alive = 0;
 	player_has_reached_level_4 = 0;
