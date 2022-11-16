@@ -119,8 +119,8 @@ char player_data_table[][5] = {
 };
 
 
-char norma_stars[] = {10, 30, 70, 120, 200};
-char norma_wins[] = {0, 2, 5, 9, 14};
+char norma_stars[] = {0xFF, 10, 30, 70, 120, 200};
+char norma_wins[] = {0xFF, 0, 2, 5, 9, 14};
 
 struct board_tile *game_tiles = (struct board_tile *)0x8000; //[255];
 
@@ -248,14 +248,42 @@ void main() {
 							++players[game.whose_turn].norma_level;
 							players[game.whose_turn].player_state = STATE_NORMA;
 							draw_players();
-							wait_jiffies(45);
+							clear_sprites(0xE0, 4);
+							display_text_custom_offset = 0x130;
+							display_text_sprite(INDEX_STAR, SIZE_HP, 0xF000 | (160 - 96) + 6, 128 + 32 + 8);	
+							display_text_custom_offset = 0x140;
+							display_text_sprite(INDEX_STAR + 2, SIZE_HP, 0xF000 | (160 + 96), 128 + 32 + 8);
+							while (1) {
+								if (keyboard_get() == 0x31) {
+									players[game.whose_turn].norma_type = NORMA_STAR;
+									break;
+								} else if (keyboard_get() == 0x32) {
+									players[game.whose_turn].norma_type = NORMA_WIN;
+									break;
+								}
+							}
+							clear_sprites(0x130, 4);
 						}
 					} else {
 						if (players[game.whose_turn].wins >= norma_wins[players[game.whose_turn].norma_level]) {
 							++players[game.whose_turn].norma_level;
 							players[game.whose_turn].player_state = STATE_NORMA;
 							draw_players();
-							wait_jiffies(45);
+							clear_sprites(0xE0, 4);
+							display_text_custom_offset = 0x130;
+							display_text_sprite(INDEX_STAR, SIZE_HP, 0xF000 | (160 - 96) + 6, 128 + 32 + 8);	
+							display_text_custom_offset = 0x140;
+							display_text_sprite(INDEX_STAR + 2, SIZE_HP, 0xF000 | (160 + 96), 128 + 32 + 8);
+							while (1) {
+								if (keyboard_get() == 0x31) {
+									players[game.whose_turn].norma_type = NORMA_STAR;
+									break;
+								} else if (keyboard_get() == 0x32) {
+									players[game.whose_turn].norma_type = NORMA_WIN;
+									break;
+								}
+							}
+							clear_sprites(0x130, 4);
 						}
 					}
 					if (players[game.whose_turn].hp != 0 && players[game.whose_turn].hp < players[game.whose_turn].maxhp) {
@@ -264,7 +292,7 @@ void main() {
 						draw_players();
 						wait_jiffies(30);
 					}
-					players[game.whose_turn].player_state = STATE_IDLE;
+					if (players[game.whose_turn].player_state != STATE_DEAD) { players[game.whose_turn].player_state = STATE_IDLE; }
 					draw_players();
 					
 					if (!player_has_reached_level_4 && players[game.whose_turn].norma_level == 4) {
@@ -288,11 +316,13 @@ void main() {
 		}
 		draw_gui();
 		clear_sprites(0xE0, 4);
-		game.whose_turn = (game.whose_turn + 1) % 4;
-		if (game.whose_turn == 0) {
+		if (game.whose_turn < 3) {
+			++game.whose_turn;
+		} else {
+			game.whose_turn = 0;
+			++game.chapter;
 			for (i = 0; i < 4; i++) {
-				++game.chapter;
-				players[i].stars += game.chapter / 5 + 1;
+				players[i].stars += (game.chapter / 5) + 1;
 			}
 		}
 	}
@@ -1239,7 +1269,7 @@ void character_menu() {
 
 void setup_video() {	
 	VERA.control = 0;
-	VERA.display.video = 0x71 | (VERA.display.video & 3); // don't want layer 0 right now 
+	VERA.display.video = 0x61 | (VERA.display.video & 3); // don't want layer 0 right now 
 	
 	VERA.display.hscale = 128;
 	VERA.display.vscale = 128;
@@ -1248,6 +1278,8 @@ void setup_video() {
 	VERA.layer0.vscroll = 0;
 	VERA.layer1.hscroll = 0;
 	VERA.layer1.vscroll = 0;	
+	
+	VERA.layer0.config = 0x04;
 		
 	VERA.layer1.config = 0xA2;
 	VERA.layer1.mapbase = 0; // map_base @ $00000 in VRAM 
