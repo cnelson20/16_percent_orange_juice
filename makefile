@@ -6,12 +6,17 @@ FLAGS = -tcx16 -Cl -m oj.map -o OJ.PRG
 OJ.PRG: main.c main.h routines.s waitforjiffy.s
 	$(CC) $(FLAGS) main.c waitforjiffy.s routines.s
 
-build: OJ.PRG
+game:
+	mkdir game/
+
+build: OJ.PRG game
+	cp OJ.PRG game/
+	cp SPRITES.CHR TILES.CHR game/
+	cp CHARACTERS/* game/
+
+sd: OJ.PRG
 	./scripts/mount_sd.sh oj.img
 	sudo cp OJ.PRG mnt/
 	sudo cp SPRITES.CHR TILES.CHR mnt/
 	sudo cp CHARACTERS/* mnt/
 	./scripts/close_sd.sh
-
-run: build OJ.PRG
-	/mnt/d/box16/box16.exe -sdcard oj.img -prg OJ.PRG -run -rtc
